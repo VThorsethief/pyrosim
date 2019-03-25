@@ -9,6 +9,7 @@
 #include "actuator.hpp"
 #include "pythonReader.hpp"
 #include "joint/joint.hpp"
+#include "joint/spring.hpp"
 
 class JointActuator : public Actuator{
 protected:
@@ -43,7 +44,8 @@ public:
     RotaryActuator(){};
 
     void create(Environment *environment){
-        HingeJoint *jointObject = (HingeJoint *) environment->getEntity(this->jointID);
+        // HingeJoint *jointObject = (HingeJoint *) environment->getEntity(this->jointID);
+        HingeSpringJoint *jointObject = (HingeSpringJoint *) environment->getEntity(this->jointID);
         this->joint = jointObject->getJoint();
 
         // set hinge params
@@ -54,7 +56,7 @@ public:
         else{
             dJointSetHingeParam(this->joint, dParamFMax, this->maxForce);
         }
-        
+
     }
 
     void actuate(dReal input, dReal dt){
@@ -75,11 +77,14 @@ public:
         // squash position to be in [0, 1]
         dReal normalizedPosition = (position + 1.0) / 2.0;
         dReal highStop = dJointGetHingeParam(this->joint, dParamHiStop);
+        // dReal highStop = dJointGetUniversalParam(this->joint, dParamHiStop);
         dReal lowStop = dJointGetHingeParam(this->joint, dParamLoStop);
+        // dReal lowStop = dJointGetUniversalParam(this->joint, dParamLoStop);
         dReal desiredTarget = normalizedPosition * ( highStop - lowStop ) + lowStop;
 
         dReal currentTarget;
         currentTarget = dJointGetHingeAngle(this->joint);
+        // currentTarget = dJointGetUniversalAngle1(this->joint);
         dReal diff = desiredTarget - currentTarget;
 
         // C.C. don't know why its necessary to flip when body1 is the world but
@@ -90,6 +95,9 @@ public:
             mult = -1.0;
         }
         dJointSetHingeParam(this->joint, dParamVel, this->speed * diff * mult);
+        // dJointSetUniversalParam(this->joint, dParamVel, this->speed * diff * mult);
+        // dJointSetUniversalParam(this->joint, dParamVel2, 0);
+        // dJointSetUniversalParam(this->joint, dParamVel, 1);
     }
 };
 

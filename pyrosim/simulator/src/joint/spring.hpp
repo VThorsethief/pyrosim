@@ -17,6 +17,8 @@ protected:
     float stiffness;
     float damping;
     dBodyID body1, body2;
+    dJointID joint;
+    float anchor[3];
 
 public:
     virtual EntityType getEntityType( void ){
@@ -26,6 +28,7 @@ public:
     void readBodiesFromPython( void ){
         readValueFromPython<int>( &this->body1ID, "Body 1 ID" );
         readValueFromPython<int>( &this->body2ID, "Body 2 ID" );
+        readValueFromPython<float>( this->anchor, 3, "Anchor");
     }
 
     void setBodies( Environment *environment ){
@@ -34,6 +37,10 @@ public:
 
         this->body1 = body1Obj->getBody();
         this->body2 = body2Obj->getBody();
+    }
+
+    dJointID getJoint(void){
+        return this->joint;
     }
 };
 
@@ -193,34 +200,56 @@ class HingeSpringJoint : public SpringJoint{
 protected:
     float axis1[3];
     float axis2[3];
+    float highStop, lowStop;
 
-    dJointID joint;
+    // dJointID joint;
 
 public:
     HingeSpringJoint(){};
 
     void create( Environment *environment ){
-        std::cerr << "Creating Hinge Spring" << std::endl;
         this->setBodies( environment );
 
         // create slider joint connecting bodies
         const dReal *pos1 = dBodyGetPosition( this->body1 );
         const dReal *pos2 = dBodyGetPosition( this->body2 );   
 
-        const dReal midpoint[3] = { ( pos1[0] + pos2[0] ) / 2.0,
-                                   ( pos1[1] + pos2[1] ) / 2.0,
-                                   ( pos1[2] + pos2[2] ) / 2.0,
-                                  };
+        // const dReal midpoint[3] = { ( pos1[0] + pos2[0] ) / 2.0,
+        //                            ( pos1[1] + pos2[1] ) / 2.0,
+        //                            ( pos1[2] + pos2[2] ) / 2.0,
+        //                           };
+
+        const dReal midpoint[3] = { this->anchor[0], this->anchor[1], this->anchor[2]};
 
         // create universal joint and attach bodies
-        this->joint = dJointCreateUniversal( environment->getWorld(), 0 );
+        // this->joint = dJointCreateUniversal( environment->getWorld(), 0 );
+
+        this->joint = dJointCreateHinge( environment->getWorld(), 0);
+
         dJointAttach( this->joint, this->body1, this->body2 );
-        dJointSetUniversalAnchor( this->joint,
+        // dJointSetUniversalAnchor( this->joint,
+        //                           midpoint[0],
+        //                           midpoint[1],
+        //                           midpoint[2] );
+
+        dJointSetHingeAnchor( this->joint,
                                   midpoint[0],
                                   midpoint[1],
                                   midpoint[2] );
-        dJointSetUniversalAxis1( this->joint, this->axis1[0], this->axis1[1], this->axis1[2] );
-        dJointSetUniversalAxis2( this->joint, this->axis2[0], this->axis2[1], this->axis2[2] );
+
+        // dJointSetUniversalAxis1( this->joint, this->axis1[0], this->axis1[1], this->axis1[2] );
+        // dJointSetUniversalAxis2( this->joint, this->axis2[0], this->axis2[1], this->axis2[2] );
+
+        dJointSetHingeAxis( this->joint, this->axis1[0], this->axis1[1], this->axis1[2] );
+        
+
+        //Added to prevent a default value of infinity
+        // dReal highStop = M_PI;
+        // dReal lowStop = -M_PI;
+        // dJointSetUniversalParam( this->joint, dParamHiStop, highStop);
+        // dJointSetUniversalParam( this->joint, dParamLoStop, lowStop);
+        dJointSetHingeParam( this->joint, dParamHiStop, this->highStop);
+        dJointSetHingeParam( this->joint, dParamLoStop, this->lowStop);
     }
 
     void readFromPython( void ){
@@ -229,29 +258,42 @@ public:
         readValueFromPython<float>( this->axis1, 3, "Axis 1" );
         readValueFromPython<float>( this->axis2, 3, "Axis 2" );
         readValueFromPython<float>( &this->damping, "Damping" );
+        readValueFromPython<float>( &this->lowStop, "Low Stop");
+        readValueFromPython<float>( &this->highStop, "High Stop");
     }
 
     void takeStep( int timeStep, dReal dt ){
         // maintain straightness
-        dReal angle1, angle2;
-        dJointGetUniversalAngles( this->joint, &angle1, &angle2 );
+        // dReal angle1, angle2;
+
+        // dJointGetUniversalAngles( this->joint, &angle1, &angle2 );
+
+        dReal angle1 = dJointGetHingeAngle( this->joint);
+        
         // angular component of spring
         dReal torque1, torque2;
         torque1 = - this->stiffness * angle1;
-        torque2 = - this->stiffness * angle2;
+        // torque2 = - this->stiffness * angle2;
 
         // calc damping
-        float v1 = dJointGetUniversalAngle1Rate( this->joint );
-        float v2 = dJointGetUniversalAngle2Rate( this->joint );
+        // float v1 = dJointGetUniversalAngle1Rate( this->joint );
+        // float v2 = dJointGetUniversalAngle2Rate( this->joint );
 
-        dJointAddUniversalTorques( this->joint,
-                                   torque1 - this->damping * v1,
-                                   torque2 - this->damping * v2 );
+        float v1 = dJointGetHingeAngleRate( this->joint );
+        
+        // dJointAddUniversalTorques( this->joint,
+        //                            torque1 - this->damping * v1,
+        //                            torque2 - this->damping * v2 );
+        dJointAddHingeTorque( this->joint,
+                                   torque1 - this->damping * v1);
+        // std::cerr << "Take Step Finished" << std::endl;
     }
 
     void draw( void ){
         dVector3 c2;
-        dJointGetUniversalAnchor( this->joint, c2 );
+        // dJointGetUniversalAnchor( this->joint, c2 );
+
+        dJointGetHingeAnchor( this->joint, c2 );
         dsSetColorAlpha( 0.0, 0.0, 0.0, 0.5 );
         const dReal *c1 = dBodyGetPosition( this->body1 );
 
@@ -276,6 +318,11 @@ public:
 
             dsDrawSphere( p, dBodyGetRotation( this->body1 ), 0.1 );
         }
+    }
+
+    virtual dReal getProprioception(void){
+        // return dJointGetUniversalAngle1(this->joint);
+        return dJointGetHingeAngle(this->joint);
     }
 };
 

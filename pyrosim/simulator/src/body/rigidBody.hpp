@@ -125,6 +125,9 @@ public:
                 geom->resetGeomUsingOffset();
             }
         }
+        // The Rotation mode added to reduce angular velocity integration 27Feb19
+        //dBodySetFiniteRotationMode(this->body, 1); Omitted 25Mar19
+        
     };
 
     virtual void readFromPython(void){

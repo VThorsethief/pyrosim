@@ -1,4 +1,5 @@
 
+from math import pi as pi
 class Mixin(object):
 
     def _send_joint(self, *args):
@@ -48,12 +49,13 @@ class Mixin(object):
         
         assert not(body1 == -1 and body2 == -1), ('Both bodies cannot be the world')
         if joint_range is None:
-            joint_range = (1, -1) # no stops
+            # joint_range = (1, -1) # no stops
+            joint_range = (-pi, pi)
 
         try:
             len(joint_range)
         except:
-            joint_range = (-joint_range, joint_range)
+            joint_range = (-1 * joint_range, joint_range)
 
         assert(len(joint_range)) == 2
         assert(len(anchor)) == 3
@@ -102,7 +104,7 @@ class Mixin(object):
         try:
             len(joint_range)
         except:
-            joint_range = (-joint_range, joint_range)
+            joint_range = (-1 * joint_range, joint_range)
         else:
           assert(len(joint_range)) == 2, "joint_range must have 2 entries"
 
@@ -174,6 +176,7 @@ class Mixin(object):
 
     def send_point_mass_spring_joint( self,
                                   body1, body2,
+                                  anchor = (0,0,0),
                                   resting_length = 1.0,
                                   stiffness = 1.0,
                                   damping = 0.0 ):
@@ -183,13 +186,14 @@ class Mixin(object):
         self._assert_body( body2 )
 
         return self._send_joint( 'PointMassSpringJoint',
-                                 body1, body2,
+                                 body1, body2, anchor,
                                  resting_length,
                                  stiffness, damping )
 
     def send_linear_spring_joint( self,
                                   body1,
                                   body2,
+                                  anchor = (0,0,0),
                                   resting_length = 1.0,
                                   stiffness = 1.0,
                                   damping = 0.0 ):
@@ -199,7 +203,7 @@ class Mixin(object):
         self._assert_body( body2 )
 
         return self._send_joint( 'LinearSpringJoint',
-                                 body1, body2,
+                                 body1, body2, anchor,
                                  resting_length,
                                  stiffness,
                                  damping )
@@ -207,10 +211,12 @@ class Mixin(object):
     def send_hinge_spring_joint( self,
                                   body1,
                                   body2,
+                                  anchor = (0,0,0),
                                   stiffness = 1.0,
                                   axis1 = ( 0, 1, 0 ),
                                   axis2 = ( 0, 0, 1 ),
-                                  damping = 0.0 ):
+                                  damping = 0.0, 
+                                  joint_range = (1, -1)  ):
         """Sends a linear spring with infinite rotational stiffness"""
 
         self._assert_body( body1 )
@@ -218,13 +224,15 @@ class Mixin(object):
 
         return self._send_joint( 'HingeSpringJoint',
                                  body1, body2,
-                                 stiffness,
+                                 anchor, stiffness,
                                  axis1, axis2,
-                                 damping )
+                                 damping, joint_range 
+                                  )
 
     def send_universal_spring_joint( self,
                                      body1,
                                      body2,
+                                     anchor= (0,0,0),
                                      resting_length = 1.0,
                                      linear_stiffness = 1.0,
                                      rotational_stiffness = 10.0 ):
@@ -236,7 +244,7 @@ class Mixin(object):
         self._assert_body( body2 )
 
         return self._send_joint( 'UniversalSpringJoint',
-                                    body1, body2,
+                                    body1, body2, anchor,
                                     resting_length,
                                     linear_stiffness,
                                     rotational_stiffness )

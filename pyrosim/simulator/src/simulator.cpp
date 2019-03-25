@@ -289,6 +289,9 @@ void initializeEnvironment(void){
 void initializeODE(void){
     dInitODE2(0);
     world = dWorldCreate();
+    //Added max angular speed 27Feb19
+    // dReal max_speed = 500; Removed max speed
+    // dWorldSetMaxAngularSpeed(world, max_speed);
     topspace = dHashSpaceCreate(0);
     contactgroup = dJointGroupCreate(0);
 }
@@ -335,8 +338,11 @@ void simulationStep(void){
     environment->takeStep(evalStep, parameters["DT"]);
     environment->emptyCollisionPairs();
     dSpaceCollide(topspace, 0, &nearCallback); // run collision
+    // std::cerr << "Space Collide Finished" << std::endl;
     dWorldStep(world, parameters["DT"]); // take time step
+    // std::cerr << "dWorldStep finished"<< std::endl;
     dJointGroupEmpty(contactgroup);
+    // std::cerr << "Joint Group Emptied" << std::endl;
     // // empty collision pairs
     
     // place action before collision detection?

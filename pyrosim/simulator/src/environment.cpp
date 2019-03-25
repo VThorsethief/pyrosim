@@ -52,7 +52,7 @@ StringToEntity stringToEntityMap{
     {"RaySensor",            &createEntityInstance<RaySensor>            }, // Ray sensor
     {"TouchSensor",          &createEntityInstance<TouchSensor>          }, // Touch sensor
     {"ProprioceptiveSensor", &createEntityInstance<ProprioceptiveSensor> }, // Proprioceptive sensor
-    {"quaternionSensor",     &createEntityInstance<QuaternionSensor>     }, // vestibular sensor returning quaternion
+    {"QuaternionSensor",     &createEntityInstance<QuaternionSensor>     }, // vestibular sensor returning quaternion
 };
 
 Environment::Environment(dWorldID world, dSpaceID topspace, int numEntities){
@@ -92,7 +92,10 @@ void Environment::createInODE(void){
               << "---------------------------" << std::endl;
     for (auto entity : this->entities){
         // create entity with env data
+        std::cerr << entity->getID() << ':' << entity->getEntityType() << std::endl;
         entity->create(this);
+        // Setting finite rotation mode for the entity added 27Feb19
+        // dBodySetFiniteRotationMode(entity->getBody(), 1);
     }
 
     // for (auto actuator : this->actuators){
