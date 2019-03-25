@@ -331,11 +331,17 @@ void initializeParameters(void){
     parameters["Friction"] = dInfinity;
 
     parameters["DrawJoints"] = 0.0;
+
+    parameters["NetworkUpdate"] = 1.0;
 }
 
 void simulationStep(void){
-    // // place action before collision detection?
-    environment->takeStep(evalStep, parameters["DT"]);
+    // check if correct time to update network
+    int updateNetwork = false;
+    if ( evalStep % int( parameters["NetworkUpdate"] ) == 0 ){
+        updateNetwork = true;
+    }
+    environment->takeStep(evalStep, parameters["DT"], updateNetwork );
     environment->emptyCollisionPairs();
     dSpaceCollide(topspace, 0, &nearCallback); // run collision
     // std::cerr << "Space Collide Finished" << std::endl;
@@ -379,9 +385,9 @@ void handleRayCollision(dGeomID ray, dGeomID o2){
     dContact contact;
     int n = dCollide(ray, o2, 1, &contact.geom, sizeof(dContact));
 
-    std::cerr << "N contacts: " << n << std::endl;
+    // std::cerr << "N contacts: " << n << std::endl;
     if (n > 0){
-        std::cerr << "Handling Ray Collision" << std::endl;
+        // std::cerr << "Handling Ray Collision" << std::endl;
         GeomData* rayData = static_cast<GeomData*>(dGeomGetData(ray));
 
         Ray *rayObj = (Ray*) environment->getEntity(rayData->entityID);

@@ -24,9 +24,11 @@ public:
                 collisionPair.second == this->bodyID){
 
                 this->sensorValues.push_back(1.0);
+                this->currentSensorValue = 1.0;
                 return;
             }
         }
+        this->currentSensorValue = 0.0f;
         this->sensorValues.push_back(0.0f);
     };
 
@@ -36,6 +38,7 @@ public:
 
     void readFromPython(void){
         readValueFromPython<int>(&this->bodyID, "Body ID");
+        this->readWriteBackFromPython();
     }
 };
 

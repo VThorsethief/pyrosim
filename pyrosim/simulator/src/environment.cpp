@@ -13,7 +13,9 @@ typedef std::map<std::string, Entity * (*) ()> StringToEntity;
 #include "actuator/thruster.hpp"
 #include "joint/spring.hpp"
 #include "network/ctrnn.hpp"
+#include "sensor/distanceToSensor.hpp"
 #include "sensor/isSeenSensor.hpp"
+#include "sensor/lightSensor.hpp"
 #include "sensor/positionSensor.hpp"
 #include "sensor/raySensor.hpp"
 #include "sensor/touchSensor.hpp"
@@ -47,7 +49,9 @@ StringToEntity stringToEntityMap{
     {"MotorNeuron",          &createEntityInstance<MotorNeuron>          }, // Motor Neuron
     {"UserNeuron",           &createEntityInstance<UserNeuron>           }, // User Neuron
     {"SensorNeuron",         &createEntityInstance<SensorNeuron>         }, // Sensor Neuron
+    {"DistanceToSensor",     &createEntityInstance<DistanceToSensor>     }, // sense distance between two bodies
     {"IsSeenSensor",         &createEntityInstance<IsSeenSensor>         }, // Is seen sensor
+    {"LightSensor",          &createEntityInstance<LightSensor>          }, // Light Sensor
     {"PositionSensor",       &createEntityInstance<PositionSensor>       }, // Position Sensor
     {"RaySensor",            &createEntityInstance<RaySensor>            }, // Ray sensor
     {"TouchSensor",          &createEntityInstance<TouchSensor>          }, // Touch sensor
@@ -200,7 +204,7 @@ void Environment::readEntityFromPython(void){
     std::cerr << "---------------------------" << std::endl << std::endl;
 }
 
-void Environment::takeStep(std::vector<int> entityIDs, int timeStep, dReal dt){
+void Environment::takeStepWithEntities(std::vector<int> entityIDs, int timeStep, dReal dt ){
     // take a step with the specified entity ids
     for (int entityID : entityIDs){
         Entity *entity = this->getEntity(entityID);
@@ -208,7 +212,7 @@ void Environment::takeStep(std::vector<int> entityIDs, int timeStep, dReal dt){
     }
 }
 
-void Environment::takeStep(int timeStep, dReal dt){
+void Environment::takeStep(int timeStep, dReal dt, int updateNetwork ){
     // take step with relevant sensory motor entities
     std::vector<int> sensorIDs = this->entityVectors[SENSOR];
     std::vector<int> neuronIDs = this->entityVectors[NEURON];
@@ -219,18 +223,22 @@ void Environment::takeStep(int timeStep, dReal dt){
     // sense -> think -> act -> simulate
 
     // update sensors (sense)
-    takeStep(sensorIDs, timeStep, dt);
+    this->takeStepWithEntities(sensorIDs, timeStep, dt);
 
-    // update network (think)
-    // note, neurons currently need to take step twice,
-    // once to reset and once to update
-    takeStep(neuronIDs, timeStep, dt);
-    takeStep(neuronIDs, timeStep, dt);
+    // only update network if updateNetwork is true
+    if ( updateNetwork ){
+        // update network (think)
+        // note, neurons currently need to take step twice,
+        // once to reset and once to update
+        this->takeStepWithEntities(neuronIDs, timeStep, dt);
+        this->takeStepWithEntities(neuronIDs, timeStep, dt);
+    }
+
     // update motors  (act)
-    takeStep(actuatorIDs, timeStep, dt);
+    this->takeStepWithEntities(actuatorIDs, timeStep, dt);
     // update other physics (simulate)
-    takeStep( jointIDs, timeStep, dt );
-    takeStep(bodyIDs, timeStep, dt);
+    this->takeStepWithEntities( jointIDs, timeStep, dt );
+    this->takeStepWithEntities(bodyIDs, timeStep, dt);
 }
 
 void Environment::writeToPython(void){
